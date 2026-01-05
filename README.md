@@ -5,7 +5,7 @@
 A cognitive architecture that synthesizes cutting-edge research in neuroscience, AI, and cognitive science into a unified framework for intelligent systems.
 
 ![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)
-![License MIT](https://img.shields.io/badge/license-GNU-green.svg)
+![License MIT](https://img.shields.io/badge/license-GPL-green.svg)
 ![Status Alpha](https://img.shields.io/badge/status-alpha-orange.svg)
 
 ---
@@ -276,7 +276,7 @@ This project synthesizes ideas from:
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+GNU-GPL License - see [LICENSE](LICENSE) for details.
 
 ---
 
