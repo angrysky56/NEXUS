@@ -18,6 +18,7 @@ class OpenRouterClient:
 
     def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
+        self.models_metadata: dict[str, dict[str, Any]] = {}  # Cache model metadata
         if not self.api_key:
             logger.info("OPENROUTER_API_KEY not set in environment. Expecting keys via API requests.")
 
@@ -51,9 +52,18 @@ class OpenRouterClient:
 
                 tool_models = []
                 for model in models:
+                    # Cache the full metadata for lookup during chat
+                    # Get provider specific limits if available
+                    top_provider = model.get("top_provider", {})
+                    self.models_metadata[model["id"]] = {
+                        "context_length": model.get("context_length", 0),
+                        "max_completion_tokens": top_provider.get("max_completion_tokens"),
+                        "supported_parameters": model.get("supported_parameters", []),
+                        "default_parameters": model.get("default_parameters", {})
+                    }
+
                     # Strict check based on OpenRouter docs:
                     # check if 'tools' is in the 'supported_parameters' list
-                    # Safely handle potential None value for supported_parameters
                     params = model.get("supported_parameters") or []
                     supports_tools = "tools" in params
 
@@ -72,6 +82,37 @@ class OpenRouterClient:
                 logger.info(f"Fetched {len(models)} models, found {len(tool_models)} with tools support.")
 
                 return tool_models
+
+    async def ensure_metadata(self, api_key: str | None = None) -> None:
+        """
+        Ensure model metadata is fetched.
+        """
+        if not self.models_metadata:
+            await self.fetch_models(api_key)
+
+    async def get_model_metadata(self, model_id: str, api_key: str | None = None) -> dict[str, Any]:
+        """
+        Retrieves cached metadata for a model.
+        """
+        await self.ensure_metadata(api_key)
+        return self.models_metadata.get(model_id, {})
+
+    async def supports_parameter(self, model_id: str, parameter: str, api_key: str | None = None) -> bool:
+        """
+        Checks if a model supports a specific parameter (e.g., 'temperature').
+        """
+        metadata = await self.get_model_metadata(model_id, api_key)
+        supported = metadata.get("supported_parameters") or []
+        return parameter in supported
+
+    async def get_model_default_temp(self, model_id: str) -> float | None:
+        """
+        Retrieves the default temperature for a model from metadata if NEXUS doesn't override it.
+        """
+        metadata = await self.get_model_metadata(model_id)
+        default_params = metadata.get("default_parameters") or {}
+        temp = default_params.get("temperature")
+        return float(temp) if temp is not None else None
 
     async def get_embeddings(self, text: str, model: str = "openai/text-embedding-3-small", api_key: str | None = None) -> list[float]:
         """
@@ -128,20 +169,36 @@ class OpenRouterClient:
         headers = self.headers.copy()
         headers["Authorization"] = f"Bearer {request_key}"
 
+        # Use dynamic max_tokens from metadata if not explicitly provided or default
+        await self.ensure_metadata(request_key)
+        metadata = self.models_metadata.get(model, {})
+        model_max = metadata.get("max_completion_tokens") or 16384 # Modern default
+        context_limit = metadata.get("context_length") or 128000 # Default if unknown
+
+        # 0. Truncate history if it exceeds context volume
+        # Simple heuristic: 1 token ~= 4 characters
+        token_limit = int(context_limit * 0.8) # Conservative buffer
+        trimmed_messages = self._truncate_messages(messages, token_limit)
+
+        # If user provided 1000 (default) and model supports more, use model's max
+        actual_max_tokens = max_tokens
+        if max_tokens == 1000 and model_max > 1000:
+             actual_max_tokens = model_max
+
         payload = {
             "model": model,
-            "messages": messages,
+            "messages": trimmed_messages,
             "stream": True,
             "temperature": temperature,
-            "max_tokens": max_tokens,
+            "max_tokens": actual_max_tokens,
             "stream_options": {"include_usage": True}
         }
 
-        # Use the new `reasoning` object parameter instead of legacy `include_reasoning`
-        # For Gemini models, this uses max_tokens which maps to thinking_budget
+        # Use the official `reasoning` object configuration
         if include_reasoning:
+            # Using effort: high is the standardized way for OpenRouter thinking models
             payload["reasoning"] = {
-                "max_tokens": 2000,  # Reasonable default for reasoning budget
+                "effort": "high",
                 "exclude": False
             }
 
@@ -200,11 +257,11 @@ class OpenRouterClient:
                                 if delta_keys and delta_keys != ['content']:  # Only log non-content-only deltas
                                     logger.debug(f"Delta keys: {delta_keys}, values preview: {str(delta)[:200]}")
 
-                            # 1. Handle Reasoning (from reasoning_details array)
-                            # OpenRouter returns reasoning in `reasoning_details` array with objects:
-                            # - type: "reasoning.text" with "text" field
-                            # - type: "reasoning.summary" with "summary" field
-                            # - type: "reasoning.encrypted" with "data" field (encrypted/redacted)
+                            # 1. Handle Reasoning (from reasoning_details array or direct field)
+                            # We use a flag to avoid yielding duplicates if multiple fields are present
+                            reasoning_yielded = False
+
+                            # Prioritize reasoning_details (OpenRouter standard)
                             if "reasoning_details" in delta and delta["reasoning_details"]:
                                 details = delta["reasoning_details"]
                                 if isinstance(details, list):
@@ -214,41 +271,89 @@ class OpenRouterClient:
                                             text = detail.get("text", "")
                                             if text:
                                                 yield {"type": "thinking", "content": text}
+                                                reasoning_yielded = True
                                         elif detail_type == "reasoning.summary":
                                             summary = detail.get("summary", "")
                                             if summary:
                                                 yield {"type": "thinking", "content": f"[Summary] {summary}"}
+                                                reasoning_yielded = True
                                         elif detail_type == "reasoning.encrypted":
-                                            # Encrypted reasoning - log but don't display raw
-                                            logger.debug(f"Received encrypted reasoning: {detail.get('format', 'unknown')}")
-                                            # Optionally yield a placeholder
-                                            yield {"type": "thinking", "content": "[Thinking...]"}
-                                        else:
-                                            # Unknown type, log and pass through
-                                            logger.warning(f"Unknown reasoning_details type: {detail_type}")
-                                else:
-                                    # Handle non-array reasoning_details (fallback)
-                                    if isinstance(details, str):
-                                        yield {"type": "thinking", "content": details}
-                                    else:
-                                        yield {"type": "thinking", "content": str(details)}
+                                            # Redacted signatures - skip yielding placeholders to avoid UI clutter
+                                            logger.debug(f"Skipping encrypted reasoning signature: {detail.get('format', 'unknown')}")
 
-                            # Legacy: Check for 'reasoning' field (some providers use this)
-                            elif "reasoning" in delta and delta["reasoning"]:
+                            # Fallback 1: Direct reasoning field (common in some providers)
+                            if not reasoning_yielded and "reasoning" in delta and delta["reasoning"]:
                                 reasoning_content = delta["reasoning"]
-                                if not isinstance(reasoning_content, str):
-                                    reasoning_content = str(reasoning_content)
-                                yield {"type": "thinking", "content": reasoning_content}
+                                if reasoning_content and isinstance(reasoning_content, str):
+                                    yield {"type": "thinking", "content": reasoning_content}
+                                    reasoning_yielded = True
+
+                            # Fallback 2: Check for interleaved reasoning in content (rare on OpenRouter but possible)
+                            # We don't do this here to avoid mixing thoughts with final output unless strictly necessary.
 
                             # 2. Handle Tool Calls
-                            if "tool_calls" in delta:
+                            # 2. Handle Tool Calls
+                            if "tool_calls" in delta and delta["tool_calls"]:
                                 yield {"type": "tool_call_chunk", "tool_calls": delta["tool_calls"]}
 
                             # 3. Handle Standard Content (Token)
                             elif "content" in delta and delta["content"]:
+                                # Only yield as token if not already yielded as reasoning in this chunk
+                                # and doesn't look like reasoning that bled into content
                                 yield {"type": "token", "content": delta["content"]}
 
                         except json.JSONDecodeError:
                             logger.error(f"Failed to decode chunk: {line.decode('utf-8', errors='replace')}")
                         except Exception as e:
                             logger.error(f"Stream error: {e}")
+
+    def _truncate_messages(self, messages: list[dict[str, Any]], token_limit: int) -> list[dict[str, Any]]:
+        """
+        Rough truncation of messages to fit within token limit.
+        Heuristic: 3.5 chars per token (conservative).
+        Always keeps the system message.
+        """
+        if not messages:
+            return []
+
+        system_msg = None
+        other_msgs = []
+
+        for msg in messages:
+            if msg.get("role") == "system":
+                system_msg = msg
+            else:
+                other_msgs.append(msg)
+
+        # Estimate tokens
+        def est_tokens(m_list: list[dict[str, Any]]) -> int:
+            total_chars = 0
+            for m in m_list:
+                if not m:
+                    continue
+                content = m.get("content") or ""
+                if isinstance(content, str):
+                    total_chars += len(content)
+                elif isinstance(content, list): # handle multi-modal/tool result types
+                    total_chars += len(str(content))
+                # Add overhead for role/name
+                total_chars += 20
+            return int(total_chars // 3.5)
+
+        if est_tokens(messages) <= token_limit:
+            return messages
+
+        # Truncate from the oldest (start of other_msgs)
+        while other_msgs and est_tokens([system_msg] + other_msgs if system_msg else other_msgs) > token_limit:
+            if len(other_msgs) > 1:
+                other_msgs.pop(0)
+            else:
+                # If only one message left and still too big, we might need to truncate its content
+                msg = other_msgs[0]
+                content = msg.get("content") or ""
+                if isinstance(content, str) and len(content) > token_limit * 3:
+                    msg["content"] = content[-(token_limit * 3):]
+                break
+
+        return [system_msg] + other_msgs if system_msg else other_msgs
+

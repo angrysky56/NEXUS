@@ -9,15 +9,20 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const [apiKey, setApiKey] = useState('');
+    const [maxIterations, setMaxIterations] = useState(50);
 
     // Load from LocalStorage on mount
     useEffect(() => {
         const storedKey = localStorage.getItem('OPENROUTER_API_KEY');
         if (storedKey) setApiKey(storedKey);
+
+        const storedIterations = localStorage.getItem('NEXUS_MAX_ITERATIONS');
+        if (storedIterations) setMaxIterations(parseInt(storedIterations));
     }, []);
 
     const handleSave = () => {
         localStorage.setItem('OPENROUTER_API_KEY', apiKey);
+        localStorage.setItem('NEXUS_MAX_ITERATIONS', maxIterations.toString());
         onClose();
     };
 
@@ -73,6 +78,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                             Key is stored locally in your browser. Not transmitted to any server other than OpenRouter.
                         </p>
                     </div>
+
+                    {/* Cognitive Configuration */}
+                    <div className="space-y-3 pt-4 border-t border-nexus-border/30">
+                        <label className="text-sm font-medium text-neon-purple flex items-center gap-2">
+                            <SettingsIcon className="w-3.5 h-3.5" />
+                            Cognitive Configuration
+                        </label>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Max Tool Iterations</label>
+                                <input
+                                    type="number"
+                                    value={maxIterations}
+                                    onChange={(e) => setMaxIterations(parseInt(e.target.value) || 50)}
+                                    min="1"
+                                    max="1000"
+                                    className="w-full bg-nexus-black border border-nexus-border rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-neon-purple transition-all"
+                                />
+                                <p className="text-[9px] text-slate-500 italic">Limits recursive tool calls per turn.</p>
+                            </div>
+                        </div>
+                    </div>
+
 
                 </div>
 

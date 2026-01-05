@@ -3,47 +3,48 @@ name = "nexus"
 version = "0.1.0"
 description = "NEXUS: Neuro-Epistemic eXploration and Unified Synthesis Engine - A cognitive architecture synthesizing CallosalNet, Fractal Bottleneck, Emotional Control Plane, and Causal Compression"
 authors = [
-    { name = "Tyler B. Hall", email = "113643118+angrysky56@users.noreply.github.com" }
+  { name = "Tyler B. Hall", email = "113643118+angrysky56@users.noreply.github.com" },
 ]
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
 keywords = [
-    "artificial-intelligence",
-    "cognitive-architecture",
-    "fractal-geometry",
-    "emotional-ai",
-    "causal-inference",
-    "neuroscience-inspired"
+  "artificial-intelligence",
+  "cognitive-architecture",
+  "fractal-geometry",
+  "emotional-ai",
+  "causal-inference",
+  "neuroscience-inspired",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
 dependencies = [
-    "torch>=2.0.0",
-    "transformers>=4.30.0",
-    "numpy>=1.24.0",
-    "scipy>=1.10.0",
-    "rich>=13.0.0",
-    "textual>=0.50.0",
-    "matplotlib>=3.7.0",
-    "plotly>=5.18.0",
-    "click>=8.1.0",
+  "torch>=2.0.0",
+  "transformers>=4.30.0",
+  "numpy>=1.24.0",
+  "scipy>=1.10.0",
+  "rich>=13.0.0",
+  "textual>=0.50.0",
+  "matplotlib>=3.7.0",
+  "plotly>=5.18.0",
+  "click>=8.1.0",
+  "fastapi>=0.100.0",
+  "pydantic>=2.0.0",
+  "uvicorn>=0.20.0",
+  "aiohttp>=3.8.0",
+  "python-dotenv>=1.0.0",
+  "chromadb>=0.4.0",
 ]
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "mypy>=1.0.0",
-    "ruff>=0.1.0",
-]
+dev = ["pytest>=7.0.0", "pytest-cov>=4.0.0", "mypy>=1.0.0", "ruff>=0.1.0"]
 
 [project.scripts]
 nexus = "nexus.main:main"
@@ -65,6 +66,7 @@ select = ["E", "F", "I", "N", "W", "UP"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
+plugins = ["pydantic.mypy"]
 warn_return_any = true
 warn_unused_ignores = true
 

@@ -5,9 +5,13 @@ import { Sidebar } from './Sidebar';
 interface LayoutProps {
     children: React.ReactNode;
     rightPanel?: React.ReactNode;
+    sessionId?: string;
+    sessions?: string[];
+    onSelectSession?: (id: string) => void;
+    onNewChat?: () => void;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children, rightPanel }) => {
+export const Layout: React.FC<LayoutProps> = ({ children, rightPanel, sessionId, sessions, onSelectSession, onNewChat }) => {
     return (
         <div className="flex h-screen bg-nexus-black text-slate-100 font-sans overflow-hidden selection:bg-neon-blue/30">
             {/* Background Ambient Glow */}
@@ -19,9 +23,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, rightPanel }) => {
             {/* Sidebar Pane (Z-10 to stay above ambient glow) */}
             <div className="relative z-10 shrink-0">
                 <Sidebar
-                    onNewChat={() => window.location.reload()}
+                    sessionId={sessionId}
+                    sessions={sessions}
+                    onSelectSession={onSelectSession}
+                    onNewChat={onNewChat}
                 />
             </div>
+
 
             {/* Main Content Pane */}
             <main className="flex-1 flex flex-col relative z-10 min-w-0 bg-nexus-black/50 backdrop-blur-sm">

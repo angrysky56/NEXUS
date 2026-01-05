@@ -2,11 +2,13 @@ import React from 'react';
 import { Plus, MessageSquare } from 'lucide-react';
 
 interface SidebarProps {
-    onNewChat: () => void;
+    onNewChat?: () => void;
+    sessionId?: string;
     sessions?: string[];
+    onSelectSession?: (id: string) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onNewChat }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ onNewChat, sessionId, sessions = [], onSelectSession }) => {
     return (
         <div className="w-64 bg-nexus-gray/50 h-screen border-r border-nexus-border flex flex-col backdrop-blur-sm">
             <div className="p-4">
@@ -25,11 +27,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewChat }) => {
 
             <div className="flex-1 overflow-y-auto px-2 space-y-1">
                 <div className="text-[10px] font-bold text-slate-500 mb-2 px-2 uppercase tracking-widest">Active Threads</div>
-                {/* Session List Placeholder */}
-                <div className="group flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white cursor-pointer transition-colors border border-transparent hover:border-white/10">
-                    <MessageSquare size={16} className="group-hover:text-neon-purple transition-colors" />
-                    <span className="truncate text-sm font-light">Current Session</span>
-                </div>
+
+                {sessions.length === 0 && !sessionId && (
+                    <div className="px-4 py-2 text-xs text-slate-600 italic">No previous sessions</div>
+                )}
+
+                {/* Always show current if not in list */}
+                {sessionId && !sessions.includes(sessionId) && (
+                    <div className="group flex items-center gap-3 p-2 rounded-lg bg-neon-purple/10 text-white cursor-default border border-neon-purple/30 shadow-[0_0_10px_rgba(157,0,255,0.1)]">
+                        <MessageSquare size={16} className="text-neon-purple" />
+                        <span className="truncate text-sm font-medium">Current Session</span>
+                    </div>
+                )}
+
+                {sessions.map(s => (
+                    <div
+                        key={s}
+                        onClick={() => onSelectSession?.(s)}
+                        className={`group flex items-center gap-3 p-2 rounded-lg transition-all border ${
+                            s === sessionId
+                                ? 'bg-neon-purple/10 text-white border-neon-purple/30'
+                                : 'hover:bg-white/5 text-slate-400 hover:text-white border-transparent hover:border-white/10'
+                        } cursor-pointer`}
+                    >
+                        <MessageSquare size={16} className={`${s === sessionId ? 'text-neon-purple' : 'group-hover:text-neon-purple'} transition-colors`} />
+                        <span className={`truncate text-sm ${s === sessionId ? 'font-medium' : 'font-light'}`}>
+                            {s.slice(0, 8)}...
+                        </span>
+                    </div>
+                ))}
             </div>
 
             <div className="p-4 border-t border-nexus-border bg-nexus-black/30 space-y-2">

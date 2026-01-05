@@ -1,5 +1,7 @@
 import datetime
+import json
 import logging
+import uuid
 from typing import Any
 
 import chromadb
@@ -31,14 +33,23 @@ class ChromaMemory:
     ) -> None:
         collection = self.get_session_collection(session_id)
 
-        # ID is timestamp + role
-        msg_id = f"{datetime.datetime.now().isoformat()}_{role}"
+        # Serialize metadata values to strings as ChromaDB only supports simple types
+        safe_metadata = {
+            "role": role,
+            "timestamp": str(datetime.datetime.now())
+        }
+        for k, v in metadata.items():
+            if v is not None:
+                if isinstance(v, (dict, list)):
+                    safe_metadata[k] = json.dumps(v)
+                else:
+                    safe_metadata[k] = str(v)
 
         collection.add(
-            documents=[content],
+            documents=[content or ""],
             embeddings=[embedding] if embedding else None,
-            metadatas=[{**metadata, "role": role, "timestamp": str(datetime.datetime.now())}],
-            ids=[msg_id]
+            metadatas=[safe_metadata],
+            ids=[str(uuid.uuid4())]
         )
 
     def get_history(self, session_id: str, limit: int = 50) -> list[dict[str, Any]]:

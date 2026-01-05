@@ -54,10 +54,14 @@ export const api = {
         return res.data;
     },
 
-    getHistory: async (_sessionId: string) => {
-        // Placeholder for history fetching implementation
-        // Need backend route for this
-        return [];
+    getHistory: async (sessionId: string) => {
+        const res = await apiClient.get(`/chat/history/${sessionId}`);
+        return res.data;
+    },
+
+    listSessions: async () => {
+        const res = await apiClient.get('/chat/sessions');
+        return res.data;
     },
 
     streamChat: (payload: any, onEvent: (event: any) => void) => {
@@ -80,7 +84,10 @@ export const api = {
         fetch(`${API_BASE}/chat/completions`, {
             method: 'POST',
             headers: headers,
-            body: JSON.stringify(payload),
+            body: JSON.stringify({
+                ...payload,
+                max_tool_iterations: parseInt(localStorage.getItem('NEXUS_MAX_ITERATIONS') || '50')
+            }),
             signal: ctrl.signal
         }).then(async (response) => {
             const reader = response.body?.getReader();

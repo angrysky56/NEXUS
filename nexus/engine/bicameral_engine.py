@@ -14,22 +14,22 @@ This is the "brain" of NEXUS.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 
 import numpy as np
 
+from ..config import DEFAULT_CONFIG, NexusConfig
 from ..core import (
-    EmotionalState,
-    EmotionalPresets,
     EmotionalPIDController,
-    TaskStateResolver,
+    EmotionalPresets,
+    EmotionalState,
     FractalEstimator,
     GeometricRouter,
     Manifold,
     RoutingDecision,
+    TaskStateResolver,
     blend_outputs,
 )
-from ..config import NexusConfig, DEFAULT_CONFIG
 
 
 class ManifoldProcessor(Protocol):

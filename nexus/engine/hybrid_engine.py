@@ -98,20 +98,28 @@ class HybridEngine(BicameralEngine):
         current_emotional_state = self.pid_controller.compute(target_state)
         logger.info(f"[ENGINE] PID output: valence={current_emotional_state.valence:.3f}, arousal={current_emotional_state.arousal:.3f}")
 
+        # 4. MANIFOLD SELECTION
+        logger.info("[ENGINE] Stage 4/6: MANIFOLD SELECTION...")
+        is_logic = routing.primary_manifold == Manifold.LOGIC
+        selected_model = self.logic_model if is_logic else self.creative_model
+
         # Build cognitive state dict for context generation
         cognitive_state = {
             "valence": current_emotional_state.valence,
             "arousal": current_emotional_state.arousal,
             "intrinsic_dimension": routing.intrinsic_dimension,
             "gate_value": routing.gate_value,
-            "primary_manifold": routing.primary_manifold.value
+            "primary_manifold": routing.primary_manifold.value,
+            "model": selected_model
         }
 
-        # 4. MANIFOLD SELECTION
-        logger.info("[ENGINE] Stage 4/6: MANIFOLD SELECTION...")
-        is_logic = routing.primary_manifold == Manifold.LOGIC
-        selected_model = self.logic_model if is_logic else self.creative_model
-        temperature = 0.2 if is_logic else 0.9
+        # NEXUS runs the temp if supported
+        if await self.client.supports_parameter(selected_model, "temperature"):
+            temperature = 0.2 if is_logic else 0.9
+        else:
+            # Fallback to model default if parameter not supported or not determined
+            temperature = await self.client.get_model_default_temp(selected_model) or 1.0
+
         logger.info(f"[ENGINE] Selected: manifold={'LOGIC' if is_logic else 'CREATIVE'}, model={selected_model}, temp={temperature}")
 
         # 5. GENERATE DYNAMIC SELF-AWARENESS CONTEXT

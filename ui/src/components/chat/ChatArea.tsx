@@ -14,7 +14,11 @@ interface Message {
     toolCalls?: any[]; // Array of tool call objects
 }
 
-export const ChatArea: React.FC = () => {
+interface ChatAreaProps {
+    sessionId: string;
+}
+
+export const ChatArea: React.FC<ChatAreaProps> = ({ sessionId }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isStreaming, setIsStreaming] = useState(false);
@@ -50,6 +54,55 @@ export const ChatArea: React.FC = () => {
         }
     }, [currentModel]);
 
+    // Load History when session changes
+    useEffect(() => {
+        if (!sessionId) return;
+
+        setMessages([]); // Clear while loading
+        api.getHistory(sessionId).then(history => {
+            if (history && Array.isArray(history)) {
+                // Map Chroma history to UI Message format
+                const mapped: Message[] = history.map((item: any) => {
+                    const meta = item.metadata || {};
+                    let thinking = meta.thinking || '';
+                    let toolCalls = [];
+
+                    try {
+                        if (meta.tool_calls) {
+                            toolCalls = typeof meta.tool_calls === 'string'
+                                ? JSON.parse(meta.tool_calls)
+                                : meta.tool_calls;
+
+                            // Map tool_calls to the format ToolBlock expects
+                            // Result from backend metadata is: {id, name, arguments, result}
+                            // Formatted for UI: {id, function: {name, arguments}, result, status: 'complete'}
+                            toolCalls = toolCalls.map((tc: any) => ({
+                                id: tc.id,
+                                index: tc.index ?? 0,
+                                function: {
+                                    name: tc.name,
+                                    arguments: tc.arguments
+                                },
+                                result: tc.result,
+                                status: 'complete'
+                            }));
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse tool_calls metadata", e);
+                    }
+
+                    return {
+                        role: item.role as 'user' | 'assistant',
+                        content: item.content,
+                        thinking: thinking,
+                        toolCalls: toolCalls
+                    };
+                });
+                setMessages(mapped);
+            }
+        }).catch(console.error);
+    }, [sessionId]);
+
     const scrollToBottom = () => bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     useEffect(scrollToBottom, [messages]);
 
@@ -81,6 +134,7 @@ export const ChatArea: React.FC = () => {
             api.streamChat({
                 message: userMsg.content,
                 model: currentModel,
+                session_id: sessionId,
                 include_reasoning: supportsReasoning
             }, (event) => {
                 if (event.type === 'usage') {
@@ -216,7 +270,7 @@ export const ChatArea: React.FC = () => {
                             <div className={`rounded-lg p-4 shadow-sm ${msg.role === 'user' ? 'bg-blue-600/20 text-blue-100' : 'bg-slate-800 text-slate-200'}`}>
                                 {msg.thinking && <ThinkingBlock content={msg.thinking} />}
 
-                                {msg.toolCalls?.map((tool, tIdx) => (
+                                {msg.toolCalls?.filter(tool => tool.function.name).map((tool, tIdx) => (
                                     <ToolBlock
                                         key={tIdx}
                                         toolName={tool.function.name}
