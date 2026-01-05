@@ -10,6 +10,9 @@ A cognitive architecture that synthesizes cutting-edge research in neuroscience,
 
 ---
 
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/a812be8d-d64d-46d0-a48c-90e7a33ef98e" />
+
+
 ## 🌟 Overview
 
 NEXUS is not just another LLM wrapper—it's an **operating system for cognition**. It combines:
