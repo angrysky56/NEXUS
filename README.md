@@ -274,11 +274,10 @@ This project synthesizes ideas from:
 - [x] Geometric router (ACC)
 - [x] Bicameral engine
 - [x] Basic CLI
-- [ ] Rich TUI with live visualizations
-- [ ] Integration with actual LLMs
+- [x] UI with live visualizations
+- [ ] Integration with bicameral trained LLMs
 - [ ] Causal bottleneck (Iron Creche)
 - [ ] Training pipeline with dopamine rewards
-- [ ] Web interface
 
 ---
 
@@ -293,5 +292,3 @@ GNU-GPL License - see [LICENSE](LICENSE) for details.
 Built upon theoretical foundations from neuroscience, cognitive science, physics, and AI research. Special thanks to the researchers whose work inspired this architecture.
 
 ---
-
-_"NEXUS is not just another LLM wrapper—it's an operating system for cognition."_
