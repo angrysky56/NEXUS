@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Activate venv if it exists
-if [ -d ".venv" ]; then
+if [[ -d ".venv" ]]; then
 	source .venv/bin/activate
 fi
 
@@ -14,7 +14,7 @@ BACKEND_PID=$!
 
 # Start Frontend
 echo "Starting Frontend..."
-cd ui
+cd ui || exit
 npm run dev &
 FRONTEND_PID=$!
 
@@ -22,11 +22,11 @@ FRONTEND_PID=$!
 cleanup() {
 	echo ""
 	echo "🛑 Shutting down NEXUS..."
-	if ps -p $BACKEND_PID >/dev/null; then
-		kill $BACKEND_PID
+	if ps -p "${BACKEND_PID}" >/dev/null; then
+		kill "${BACKEND_PID}"
 	fi
-	if ps -p $FRONTEND_PID >/dev/null; then
-		kill $FRONTEND_PID
+	if ps -p "${FRONTEND_PID}" >/dev/null; then
+		kill "${FRONTEND_PID}"
 	fi
 	exit
 }
