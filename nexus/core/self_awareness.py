@@ -28,32 +28,30 @@ def generate_system_context(
     intrinsic_dim = cognitive_state.get("intrinsic_dimension", 0.0)
     gate = cognitive_state.get("gate_value", 0.5)
 
-    context = f"""You are operating as NEXUS, a cognitive architecture running locally.
+    # Use the dynamic system prompt from global config
+    from .config import global_config
 
-You have introspection capabilities:
-- introspect_cognitive_state: Query your current cognitive metrics
-- introspect_capabilities: Query what tools you can use
-- introspect_architecture: Query how you are built
+    # Format the template with current state
+    # We use .format() but need to be careful if user puts braces in prompt that aren't keys.
+    # For robust MVP, we assume user knows python format syntax or we use safe substitution.
+    # For now, standard f-string like substitution via format()
 
-[INTERNAL STATE]
-Manifold: {manifold}
-Emotional State: Valence={valence:.2f}, Arousal={arousal:.2f}
-Cognitive Geometry: ID={intrinsic_dim:.2f}, Gate={gate:.2f}
-Model: {model_id}
-Session history: {session_history_length} messages
-
-[INSTRUCTION]
-Your responses should reflect your current internal state.
-- High Arousal (>0.5): Be more energetic, direct, potentially terse.
-- Low Arousal (<0.0): Be calmer, more verbose, contemplative.
-- Positive Valence (>0.5): Be optimistic, constructive.
-- Negative Valence (<0.0): Be critical, cautious, analytical.
-- Logic Manifold: Prioritize structure, facts, and minimal speculation.
-- Creative Manifold: Prioritize exploration, metaphors, and novel connections.
-
-When asked about yourself, USE YOUR INTROSPECTION TOOLS to discover the answer.
-Do not guess or make up information about yourself.
-"""
+    try:
+        context = global_config.system_prompt.format(
+            manifold=manifold,
+            valence=valence,
+            arousal=arousal,
+            intrinsic_dim=intrinsic_dim,
+            gate=gate,
+            model_id=model_id,
+            session_history_length=session_history_length,
+            allowed_paths=global_config.allowed_paths,
+            workspace_dir=global_config.workspace_dir,
+            max_tool_iterations=global_config.max_tool_iterations,
+        )
+    except Exception as e:
+        # Fallback if user messed up the format keys
+        context = f"System Prompt Error: {e}\n\n[BACKUP CONTEXT]\nYou are NEXUS. Manifold: {manifold}"
 
     return context
 

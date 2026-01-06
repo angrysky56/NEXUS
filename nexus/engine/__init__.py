@@ -6,15 +6,14 @@ Exports the main engine components.
 
 from .bicameral_engine import (
     BicameralEngine,
-    ProcessingResult,
-    ManifoldProcessor,
-    DefaultLogicProcessor,
     DefaultCreativeProcessor,
+    DefaultLogicProcessor,
+    ManifoldProcessor,
+    ProcessingResult,
 )
-
 from .synthesizer import (
-    Synthesizer,
     SynthesisResult,
+    Synthesizer,
     TriuneSynthesizer,
 )
 
@@ -25,7 +24,6 @@ __all__ = [
     "ManifoldProcessor",
     "DefaultLogicProcessor",
     "DefaultCreativeProcessor",
-
     # Synthesizer
     "Synthesizer",
     "SynthesisResult",

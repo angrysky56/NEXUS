@@ -11,14 +11,15 @@ Reference: docs/Epistemic_Engineering_Fractal_Bottleneck_Hypothesis.md
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
 
 import numpy as np
 
 try:
     import torch
     import torch.nn as nn
+
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
@@ -273,6 +274,7 @@ class CorrelationDimension:
 
 
 if HAS_TORCH:
+
     class NeuralFractalEstimator(nn.Module):
         """
         Neural Network-based Fractal Dimension Estimator.

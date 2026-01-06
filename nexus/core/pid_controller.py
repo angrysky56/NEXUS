@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from .emotional_state import EmotionalState, EmotionalPresets
+from .emotional_state import EmotionalPresets, EmotionalState
 
 
 @dataclass
@@ -38,7 +38,9 @@ class PIDState:
     integral_a: float = 0.0
 
     # Current emotional state
-    current_state: EmotionalState = field(default_factory=lambda: EmotionalPresets.NEUTRAL)
+    current_state: EmotionalState = field(
+        default_factory=lambda: EmotionalPresets.NEUTRAL
+    )
 
     # History for analysis
     history: list[EmotionalState] = field(default_factory=list)
@@ -77,9 +79,7 @@ class EmotionalPIDController:
         self.gains = gains or PIDGains()
         self.integral_clamp = integral_clamp
 
-        self.state = PIDState(
-            current_state=initial_state or EmotionalPresets.NEUTRAL
-        )
+        self.state = PIDState(current_state=initial_state or EmotionalPresets.NEUTRAL)
 
     def compute(
         self,
@@ -107,8 +107,7 @@ class EmotionalPIDController:
         # Integral term (with anti-windup clamping)
         self.state.integral_v += error_v * dt
         self.state.integral_v = max(
-            -self.integral_clamp,
-            min(self.integral_clamp, self.state.integral_v)
+            -self.integral_clamp, min(self.integral_clamp, self.state.integral_v)
         )
         i_v = self.gains.ki * self.state.integral_v
 
@@ -132,8 +131,7 @@ class EmotionalPIDController:
         # Integral term
         self.state.integral_a += error_a * dt
         self.state.integral_a = max(
-            -self.integral_clamp,
-            min(self.integral_clamp, self.state.integral_a)
+            -self.integral_clamp, min(self.integral_clamp, self.state.integral_a)
         )
         i_a = self.gains.ki * self.state.integral_a
 
@@ -161,9 +159,7 @@ class EmotionalPIDController:
 
     def reset(self, state: EmotionalState | None = None) -> None:
         """Reset the controller to initial state."""
-        self.state = PIDState(
-            current_state=state or EmotionalPresets.NEUTRAL
-        )
+        self.state = PIDState(current_state=state or EmotionalPresets.NEUTRAL)
 
     def get_mood_trend(self) -> tuple[float, float]:
         """
@@ -237,10 +233,7 @@ class TaskStateResolver:
         """
         # Get base target from task type
         task_type_lower = task_type.lower()
-        target = cls.TASK_STATE_MAP.get(
-            task_type_lower,
-            cls.TASK_STATE_MAP["default"]
-        )
+        target = cls.TASK_STATE_MAP.get(task_type_lower, cls.TASK_STATE_MAP["default"])
 
         # Apply defensive adjustment if environment is hostile
         if env_state is not None and env_state.valence < -0.5:
@@ -262,21 +255,34 @@ class TaskStateResolver:
         text_lower = text.lower()
 
         # Code/debug patterns
-        if any(kw in text_lower for kw in ["debug", "error", "fix", "bug", "traceback"]):
+        if any(
+            kw in text_lower for kw in ["debug", "error", "fix", "bug", "traceback"]
+        ):
             return "debug"
-        if any(kw in text_lower for kw in ["code", "implement", "function", "class", "python"]):
+        if any(
+            kw in text_lower
+            for kw in ["code", "implement", "function", "class", "python"]
+        ):
             return "coding"
 
         # Math/logic patterns
-        if any(kw in text_lower for kw in ["calculate", "math", "equation", "prove", "solve"]):
+        if any(
+            kw in text_lower
+            for kw in ["calculate", "math", "equation", "prove", "solve"]
+        ):
             return "math"
         if any(kw in text_lower for kw in ["analyze", "reason", "logic", "deduce"]):
             return "logic"
 
         # Creative patterns
-        if any(kw in text_lower for kw in ["write", "story", "poem", "creative", "imagine"]):
+        if any(
+            kw in text_lower for kw in ["write", "story", "poem", "creative", "imagine"]
+        ):
             return "creative"
-        if any(kw in text_lower for kw in ["brainstorm", "ideas", "suggest", "possibilities"]):
+        if any(
+            kw in text_lower
+            for kw in ["brainstorm", "ideas", "suggest", "possibilities"]
+        ):
             return "ideation"
 
         # Default to chat

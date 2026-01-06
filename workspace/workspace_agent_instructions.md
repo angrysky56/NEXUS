@@ -1,0 +1,1 @@
+This workspace is yours to work in in any way required. Use it to create, edit, and manage your projects. Write new skills and tools to expand your capabilities. Keep it organized and easy to navigate.

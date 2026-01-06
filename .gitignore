@@ -62,7 +62,7 @@ yarn-debug.log*
 Thumbs.db
 ehthumbs.db
 [Dd]esktop.ini
-
+nexus_data/chroma.sqlite3
 # Project Specific Data & Build
 nexus_data/
 site/

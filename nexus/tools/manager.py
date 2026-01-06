@@ -2,10 +2,16 @@ import logging
 from typing import Any
 
 from .filesystem import FileSystemTool
-from .introspection import INTROSPECTION_TOOLS, execute_introspection, set_cognitive_state_ref, set_tools_schema_ref
+from .introspection import (
+    INTROSPECTION_TOOLS,
+    execute_introspection,
+    set_cognitive_state_ref,
+    set_tools_schema_ref,
+)
 from .terminal import TerminalTool
 
 logger = logging.getLogger(__name__)
+
 
 class ToolManager:
     def __init__(self, allowed_paths: list[str] = ["./"]):
@@ -21,14 +27,12 @@ class ToolManager:
                     "description": "Read content of a file",
                     "parameters": {
                         "type": "object",
-                        "properties": {
-                            "path": {"type": "string"}
-                        },
-                        "required": ["path"]
-                    }
-                }
+                        "properties": {"path": {"type": "string"}},
+                        "required": ["path"],
+                    },
+                },
             },
-             {
+            {
                 "type": "function",
                 "function": {
                     "name": "write_file",
@@ -37,40 +41,36 @@ class ToolManager:
                         "type": "object",
                         "properties": {
                             "path": {"type": "string"},
-                            "content": {"type": "string"}
+                            "content": {"type": "string"},
                         },
-                        "required": ["path", "content"]
-                    }
-                }
+                        "required": ["path", "content"],
+                    },
+                },
             },
-             {
+            {
                 "type": "function",
                 "function": {
                     "name": "list_dir",
                     "description": "List directory contents",
                     "parameters": {
                         "type": "object",
-                        "properties": {
-                            "path": {"type": "string"}
-                        },
-                        "required": ["path"]
-                    }
-                }
+                        "properties": {"path": {"type": "string"}},
+                        "required": ["path"],
+                    },
+                },
             },
-             {
+            {
                 "type": "function",
                 "function": {
                     "name": "run_command",
                     "description": "Execute a shell command",
                     "parameters": {
                         "type": "object",
-                        "properties": {
-                            "command": {"type": "string"}
-                        },
-                        "required": ["command"]
-                    }
-                }
-            }
+                        "properties": {"command": {"type": "string"}},
+                        "required": ["command"],
+                    },
+                },
+            },
         ]
 
         # Combine base tools with introspection tools
@@ -100,4 +100,3 @@ class ToolManager:
                 return f"Error: Tool {tool_name} not found."
         except Exception as e:
             return f"Error executing {tool_name}: {e}"
-

@@ -142,7 +142,9 @@ async def event_generator(
     all_executed_tool_calls: list[dict[str, Any]] = []
     packet_counts: dict[str, int] = {}
     current_history = history_dicts.copy()
-    max_tool_iterations = req.max_tool_iterations or 1000
+    from ...core.config import global_config
+
+    max_tool_iterations = req.max_tool_iterations or global_config.max_tool_iterations
     iteration = 0
 
     system_prompt_for_continuation = ""

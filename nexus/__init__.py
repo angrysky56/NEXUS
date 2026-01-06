@@ -15,20 +15,18 @@ A cognitive architecture that synthesizes:
 __version__ = "0.1.0"
 __author__ = "Ty"
 
-from .config import NexusConfig, DEFAULT_CONFIG
-
+from .config import DEFAULT_CONFIG, NexusConfig
 from .core import (
-    EmotionalState,
-    EmotionalPresets,
+    DopamineRewardFunction,
     EmotionalPIDController,
+    EmotionalPresets,
+    EmotionalState,
     FractalEstimator,
     FractalResult,
     GeometricRouter,
     Manifold,
     RoutingDecision,
-    DopamineRewardFunction,
 )
-
 from .engine import (
     BicameralEngine,
     ProcessingResult,
@@ -38,11 +36,9 @@ from .engine import (
 __all__ = [
     # Version
     "__version__",
-
     # Config
     "NexusConfig",
     "DEFAULT_CONFIG",
-
     # Core Components
     "EmotionalState",
     "EmotionalPresets",
@@ -53,7 +49,6 @@ __all__ = [
     "Manifold",
     "RoutingDecision",
     "DopamineRewardFunction",
-
     # Engine
     "BicameralEngine",
     "ProcessingResult",
