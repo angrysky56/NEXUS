@@ -222,6 +222,7 @@ async def event_generator(
                     yield f"data: {json.dumps({'type': 'usage', **packet})}\n\n"
 
                 elif packet_type == "error":
+                    logger.error(f"[STREAM] Received error packet: {packet['content']}")
                     yield f"data: {json.dumps({'type': 'error', 'content': packet['content']})}\n\n"
 
                 else:
@@ -289,6 +290,9 @@ async def event_generator(
                     yield f"data: {json.dumps({'type': 'usage', **packet})}\n\n"
 
                 elif packet_type == "error":
+                    logger.error(
+                        f"[STREAM] Received error packet in direct call: {packet['content']}"
+                    )
                     yield f"data: {json.dumps({'type': 'error', 'content': packet['content']})}\n\n"
 
         # After stream completes, check if we have tool calls to execute

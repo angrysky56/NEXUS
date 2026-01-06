@@ -12,7 +12,7 @@ def generate_system_context(
     cognitive_state: dict[str, Any],
     tools: list[dict[str, Any]],
     model_id: str,
-    session_history_length: int = 0
+    session_history_length: int = 0,
 ) -> str:
     """
     Generate a minimal bootstrap context.
@@ -23,6 +23,10 @@ def generate_system_context(
 
     # Just the facts - no interpretation
     manifold = cognitive_state.get("primary_manifold", "neutral")
+    valence = cognitive_state.get("valence", 0.0)
+    arousal = cognitive_state.get("arousal", 0.0)
+    intrinsic_dim = cognitive_state.get("intrinsic_dimension", 0.0)
+    gate = cognitive_state.get("gate_value", 0.5)
 
     context = f"""You are operating as NEXUS, a cognitive architecture running locally.
 
@@ -31,9 +35,21 @@ You have introspection capabilities:
 - introspect_capabilities: Query what tools you can use
 - introspect_architecture: Query how you are built
 
-Current manifold: {manifold}
+[INTERNAL STATE]
+Manifold: {manifold}
+Emotional State: Valence={valence:.2f}, Arousal={arousal:.2f}
+Cognitive Geometry: ID={intrinsic_dim:.2f}, Gate={gate:.2f}
 Model: {model_id}
 Session history: {session_history_length} messages
+
+[INSTRUCTION]
+Your responses should reflect your current internal state.
+- High Arousal (>0.5): Be more energetic, direct, potentially terse.
+- Low Arousal (<0.0): Be calmer, more verbose, contemplative.
+- Positive Valence (>0.5): Be optimistic, constructive.
+- Negative Valence (<0.0): Be critical, cautious, analytical.
+- Logic Manifold: Prioritize structure, facts, and minimal speculation.
+- Creative Manifold: Prioritize exploration, metaphors, and novel connections.
 
 When asked about yourself, USE YOUR INTROSPECTION TOOLS to discover the answer.
 Do not guess or make up information about yourself.

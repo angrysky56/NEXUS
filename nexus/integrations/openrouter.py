@@ -8,6 +8,7 @@ import aiohttp
 
 logger = logging.getLogger(__name__)
 
+
 class OpenRouterClient:
     """
     Client for interacting with the OpenRouter API.
@@ -20,13 +21,15 @@ class OpenRouterClient:
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
         self.models_metadata: dict[str, dict[str, Any]] = {}  # Cache model metadata
         if not self.api_key:
-            logger.info("OPENROUTER_API_KEY not set in environment. Expecting keys via API requests.")
+            logger.info(
+                "OPENROUTER_API_KEY not set in environment. Expecting keys via API requests."
+            )
 
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "HTTP-Referer": "https://nexus-ai.local",  # Required by OpenRouter
             "X-Title": "NEXUS Cognitive Architecture",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
     async def fetch_models(self, api_key: str | None = None) -> list[dict[str, Any]]:
@@ -39,10 +42,12 @@ class OpenRouterClient:
         # But let's check:
         headers = self.headers.copy()
         if request_key:
-             headers["Authorization"] = f"Bearer {request_key}"
+            headers["Authorization"] = f"Bearer {request_key}"
 
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"{self.BASE_URL}/models", headers=headers) as response:
+            async with session.get(
+                f"{self.BASE_URL}/models", headers=headers
+            ) as response:
                 if response.status != 200:
                     logger.error(f"Failed to fetch models: {await response.text()}")
                     return []
@@ -57,9 +62,11 @@ class OpenRouterClient:
                     top_provider = model.get("top_provider", {})
                     self.models_metadata[model["id"]] = {
                         "context_length": model.get("context_length", 0),
-                        "max_completion_tokens": top_provider.get("max_completion_tokens"),
+                        "max_completion_tokens": top_provider.get(
+                            "max_completion_tokens"
+                        ),
                         "supported_parameters": model.get("supported_parameters", []),
-                        "default_parameters": model.get("default_parameters", {})
+                        "default_parameters": model.get("default_parameters", {}),
                     }
 
                     # Strict check based on OpenRouter docs:
@@ -68,18 +75,24 @@ class OpenRouterClient:
                     supports_tools = "tools" in params
 
                     if supports_tools:
-                        tool_models.append({
-                            "id": model["id"],
-                            "name": model["name"],
-                            "context_length": model["context_length"],
-                            "pricing": model.get("pricing", {"prompt": "0", "completion": "0"}),
-                            "description": model.get("description", ""),
-                            "architecture": model.get("architecture", {}),
-                            "supported_parameters": params,
-                            "supports_tools": True
-                        })
+                        tool_models.append(
+                            {
+                                "id": model["id"],
+                                "name": model["name"],
+                                "context_length": model["context_length"],
+                                "pricing": model.get(
+                                    "pricing", {"prompt": "0", "completion": "0"}
+                                ),
+                                "description": model.get("description", ""),
+                                "architecture": model.get("architecture", {}),
+                                "supported_parameters": params,
+                                "supports_tools": True,
+                            }
+                        )
 
-                logger.info(f"Fetched {len(models)} models, found {len(tool_models)} with tools support.")
+                logger.info(
+                    f"Fetched {len(models)} models, found {len(tool_models)} with tools support."
+                )
 
                 return tool_models
 
@@ -90,14 +103,18 @@ class OpenRouterClient:
         if not self.models_metadata:
             await self.fetch_models(api_key)
 
-    async def get_model_metadata(self, model_id: str, api_key: str | None = None) -> dict[str, Any]:
+    async def get_model_metadata(
+        self, model_id: str, api_key: str | None = None
+    ) -> dict[str, Any]:
         """
         Retrieves cached metadata for a model.
         """
         await self.ensure_metadata(api_key)
         return self.models_metadata.get(model_id, {})
 
-    async def supports_parameter(self, model_id: str, parameter: str, api_key: str | None = None) -> bool:
+    async def supports_parameter(
+        self, model_id: str, parameter: str, api_key: str | None = None
+    ) -> bool:
         """
         Checks if a model supports a specific parameter (e.g., 'temperature').
         """
@@ -114,28 +131,28 @@ class OpenRouterClient:
         temp = default_params.get("temperature")
         return float(temp) if temp is not None else None
 
-    async def get_embeddings(self, text: str, model: str = "openai/text-embedding-3-small", api_key: str | None = None) -> list[float]:
+    async def get_embeddings(
+        self,
+        text: str,
+        model: str = "openai/text-embedding-3-small",
+        api_key: str | None = None,
+    ) -> list[float]:
         """
         Generate embeddings for the given text.
         """
 
         request_key = api_key or self.api_key
         if not request_key:
-             raise Exception("API Key missing")
+            raise Exception("API Key missing")
 
         headers = self.headers.copy()
         headers["Authorization"] = f"Bearer {request_key}"
 
-        payload = {
-            "model": model,
-            "input": text
-        }
+        payload = {"model": model, "input": text}
 
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                f"{self.BASE_URL}/embeddings",
-                headers=headers,
-                json=payload
+                f"{self.BASE_URL}/embeddings", headers=headers, json=payload
             ) as response:
                 if response.status != 200:
                     error_text = await response.text()
@@ -154,7 +171,7 @@ class OpenRouterClient:
         temperature: float = 0.7,
         max_tokens: int = 1000,
         api_key: str | None = None,
-        include_reasoning: bool = False
+        include_reasoning: bool = False,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Stream chat completion with support for reasoning and tools.
@@ -163,8 +180,11 @@ class OpenRouterClient:
         # Use provided key or fall back to instance key
         request_key = api_key or self.api_key
         if not request_key:
-             yield {"type": "error", "content": "API Key missing. Please configure in Settings."}
-             return
+            yield {
+                "type": "error",
+                "content": "API Key missing. Please configure in Settings.",
+            }
+            return
 
         headers = self.headers.copy()
         headers["Authorization"] = f"Bearer {request_key}"
@@ -172,18 +192,51 @@ class OpenRouterClient:
         # Use dynamic max_tokens from metadata if not explicitly provided or default
         await self.ensure_metadata(request_key)
         metadata = self.models_metadata.get(model, {})
-        model_max = metadata.get("max_completion_tokens") or 16384 # Modern default
-        context_limit = metadata.get("context_length") or 128000 # Default if unknown
+        model_max = metadata.get("max_completion_tokens") or 16384  # Modern default
+        context_limit = metadata.get("context_length") or 128000  # Default if unknown
 
         # 0. Truncate history if it exceeds context volume
         # Simple heuristic: 1 token ~= 4 characters
-        token_limit = int(context_limit * 0.8) # Conservative buffer
+        token_limit = int(context_limit * 0.8)  # Conservative buffer for input
         trimmed_messages = self._truncate_messages(messages, token_limit)
 
-        # If user provided 1000 (default) and model supports more, use model's max
+        # Estimate input usage
+        estimated_input_tokens = 0
+        for m in trimmed_messages:
+            content = m.get("content") or ""
+            estimated_input_tokens += len(str(content)) // 3.0
+
+        # Add buffer for tools if present
+        if tools:
+            # Basic estimation for tool definitions
+            estimated_input_tokens += 1000  # Conservative flat tool cost
+
+        # Calculate safe max_tokens
+        # Ensure we don't ask for more than (Context - Input)
+        # Increased safety buffer from 100 to 2000 to account for system prompt overhead, tools, and tokenizer variance
+        safety_buffer = 2000
+        remaining_tokens = context_limit - int(estimated_input_tokens) - safety_buffer
+
+        if remaining_tokens < 100:
+            remaining_tokens = 100  # Bare minimum
+
+        # If user provided 1000 (default) and model supports more, use model's max,
+        # BUT clamp it to remaining_tokens
         actual_max_tokens = max_tokens
-        if max_tokens == 1000 and model_max > 1000:
-             actual_max_tokens = model_max
+        if max_tokens == 1000:
+            # If default was passed, try to use model's max completion ability
+            actual_max_tokens = model_max or remaining_tokens
+
+        # Clamp to physical reality
+        actual_max_tokens = min(actual_max_tokens, remaining_tokens)
+
+        # Further safety: if model has a hard output limit (like 4k or 8k), respect it
+        if model_max:
+            actual_max_tokens = min(actual_max_tokens, model_max)
+
+        logger.info(
+            f"[OpenRouter] Context: {context_limit}, Input Est: {int(estimated_input_tokens)}, Buffer: {safety_buffer}, Max Output set to: {actual_max_tokens}"
+        )
 
         payload = {
             "model": model,
@@ -191,28 +244,25 @@ class OpenRouterClient:
             "stream": True,
             "temperature": temperature,
             "max_tokens": actual_max_tokens,
-            "stream_options": {"include_usage": True}
+            "stream_options": {"include_usage": True},
         }
 
         # Use the official `reasoning` object configuration
         if include_reasoning:
             # Using effort: high is the standardized way for OpenRouter thinking models
-            payload["reasoning"] = {
-                "effort": "high",
-                "exclude": False
-            }
+            payload["reasoning"] = {"effort": "high", "exclude": False}
 
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = tool_choice
 
-        logger.debug(f"OpenRouter request payload: model={model}, reasoning={include_reasoning}")
+        logger.debug(
+            f"OpenRouter request payload: model={model}, reasoning={include_reasoning}"
+        )
 
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                f"{self.BASE_URL}/chat/completions",
-                headers=headers,
-                json=payload
+                f"{self.BASE_URL}/chat/completions", headers=headers, json=payload
             ) as response:
                 if response.status != 200:
                     error_text = await response.text()
@@ -221,12 +271,12 @@ class OpenRouterClient:
 
                 async for line in response.content:
                     line = line.strip()
-                    if not line or line == b'data: [DONE]':
+                    if not line or line == b"data: [DONE]":
                         continue
 
-                    if line.startswith(b'data: '):
+                    if line.startswith(b"data: "):
                         try:
-                            json_str = line.decode('utf-8')[6:] # Remove 'data: '
+                            json_str = line.decode("utf-8")[6:]  # Remove 'data: '
                             chunk = json.loads(json_str)
 
                             # Handle Usage Chunk (usually the last one)
@@ -235,16 +285,20 @@ class OpenRouterClient:
                                 # Extract reasoning tokens if available
                                 reasoning_tokens = 0
                                 if "completion_tokens_details" in usage:
-                                     reasoning_tokens = usage["completion_tokens_details"].get("reasoning_tokens", 0)
+                                    reasoning_tokens = usage[
+                                        "completion_tokens_details"
+                                    ].get("reasoning_tokens", 0)
 
                                 yield {
                                     "type": "usage",
                                     "prompt_tokens": usage.get("prompt_tokens", 0),
-                                    "completion_tokens": usage.get("completion_tokens", 0),
+                                    "completion_tokens": usage.get(
+                                        "completion_tokens", 0
+                                    ),
                                     "total_tokens": usage.get("total_tokens", 0),
-                                    "reasoning_tokens": reasoning_tokens
+                                    "reasoning_tokens": reasoning_tokens,
                                 }
-                                continue # Usage chunk might not have choices
+                                continue  # Usage chunk might not have choices
 
                             if not chunk.get("choices"):
                                 continue
@@ -254,15 +308,22 @@ class OpenRouterClient:
                             # Debug: Log all delta keys to see what's being returned
                             if delta:
                                 delta_keys = list(delta.keys())
-                                if delta_keys and delta_keys != ['content']:  # Only log non-content-only deltas
-                                    logger.debug(f"Delta keys: {delta_keys}, values preview: {str(delta)[:200]}")
+                                if delta_keys and delta_keys != [
+                                    "content"
+                                ]:  # Only log non-content-only deltas
+                                    logger.debug(
+                                        f"Delta keys: {delta_keys}, values preview: {str(delta)[:200]}"
+                                    )
 
                             # 1. Handle Reasoning (from reasoning_details array or direct field)
                             # We use a flag to avoid yielding duplicates if multiple fields are present
                             reasoning_yielded = False
 
                             # Prioritize reasoning_details (OpenRouter standard)
-                            if "reasoning_details" in delta and delta["reasoning_details"]:
+                            if (
+                                "reasoning_details" in delta
+                                and delta["reasoning_details"]
+                            ):
                                 details = delta["reasoning_details"]
                                 if isinstance(details, list):
                                     for detail in details:
@@ -270,22 +331,40 @@ class OpenRouterClient:
                                         if detail_type == "reasoning.text":
                                             text = detail.get("text", "")
                                             if text:
-                                                yield {"type": "thinking", "content": text}
+                                                yield {
+                                                    "type": "thinking",
+                                                    "content": text,
+                                                }
                                                 reasoning_yielded = True
                                         elif detail_type == "reasoning.summary":
                                             summary = detail.get("summary", "")
                                             if summary:
-                                                yield {"type": "thinking", "content": f"[Summary] {summary}"}
+                                                yield {
+                                                    "type": "thinking",
+                                                    "content": f"[Summary] {summary}",
+                                                }
                                                 reasoning_yielded = True
                                         elif detail_type == "reasoning.encrypted":
-                                            # Redacted signatures - skip yielding placeholders to avoid UI clutter
-                                            logger.debug(f"Skipping encrypted reasoning signature: {detail.get('format', 'unknown')}")
+                                            # Redacted signatures -
+                                            # skip yielding placeholders to avoid UI clutter
+                                            logger.debug(
+                                                f"Skipping encrypted reasoning signature: {detail.get('format', 'unknown')}"
+                                            )
 
                             # Fallback 1: Direct reasoning field (common in some providers)
-                            if not reasoning_yielded and "reasoning" in delta and delta["reasoning"]:
+                            if (
+                                not reasoning_yielded
+                                and "reasoning" in delta
+                                and delta["reasoning"]
+                            ):
                                 reasoning_content = delta["reasoning"]
-                                if reasoning_content and isinstance(reasoning_content, str):
-                                    yield {"type": "thinking", "content": reasoning_content}
+                                if reasoning_content and isinstance(
+                                    reasoning_content, str
+                                ):
+                                    yield {
+                                        "type": "thinking",
+                                        "content": reasoning_content,
+                                    }
                                     reasoning_yielded = True
 
                             # Fallback 2: Check for interleaved reasoning in content (rare on OpenRouter but possible)
@@ -294,7 +373,10 @@ class OpenRouterClient:
                             # 2. Handle Tool Calls
                             # 2. Handle Tool Calls
                             if "tool_calls" in delta and delta["tool_calls"]:
-                                yield {"type": "tool_call_chunk", "tool_calls": delta["tool_calls"]}
+                                yield {
+                                    "type": "tool_call_chunk",
+                                    "tool_calls": delta["tool_calls"],
+                                }
 
                             # 3. Handle Standard Content (Token)
                             elif "content" in delta and delta["content"]:
@@ -303,11 +385,15 @@ class OpenRouterClient:
                                 yield {"type": "token", "content": delta["content"]}
 
                         except json.JSONDecodeError:
-                            logger.error(f"Failed to decode chunk: {line.decode('utf-8', errors='replace')}")
+                            logger.error(
+                                f"Failed to decode chunk: {line.decode('utf-8', errors='replace')}"
+                            )
                         except Exception as e:
                             logger.error(f"Stream error: {e}")
 
-    def _truncate_messages(self, messages: list[dict[str, Any]], token_limit: int) -> list[dict[str, Any]]:
+    def _truncate_messages(
+        self, messages: list[dict[str, Any]], token_limit: int
+    ) -> list[dict[str, Any]]:
         """
         Rough truncation of messages to fit within token limit.
         Heuristic: 3.5 chars per token (conservative).
@@ -334,7 +420,7 @@ class OpenRouterClient:
                 content = m.get("content") or ""
                 if isinstance(content, str):
                     total_chars += len(content)
-                elif isinstance(content, list): # handle multi-modal/tool result types
+                elif isinstance(content, list):  # handle multi-modal/tool result types
                     total_chars += len(str(content))
                 # Add overhead for role/name
                 total_chars += 20
@@ -344,7 +430,11 @@ class OpenRouterClient:
             return messages
 
         # Truncate from the oldest (start of other_msgs)
-        while other_msgs and est_tokens([system_msg] + other_msgs if system_msg else other_msgs) > token_limit:
+        while (
+            other_msgs
+            and est_tokens([system_msg] + other_msgs if system_msg else other_msgs)
+            > token_limit
+        ):
             if len(other_msgs) > 1:
                 other_msgs.pop(0)
             else:
@@ -352,8 +442,7 @@ class OpenRouterClient:
                 msg = other_msgs[0]
                 content = msg.get("content") or ""
                 if isinstance(content, str) and len(content) > token_limit * 3:
-                    msg["content"] = content[-(token_limit * 3):]
+                    msg["content"] = content[-(token_limit * 3) :]
                 break
 
         return [system_msg] + other_msgs if system_msg else other_msgs
-
