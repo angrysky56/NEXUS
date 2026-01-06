@@ -292,3 +292,4 @@ GNU-GPL License - see [LICENSE](LICENSE) for details.
 Built upon theoretical foundations from neuroscience, cognitive science, physics, and AI research. Special thanks to the researchers whose work inspired this architecture.
 
 ---
+Created by [Tyler B. Hall](https://github.com/angrysky56), Claude Opus 4.5, and Gemini Pro 3.0
