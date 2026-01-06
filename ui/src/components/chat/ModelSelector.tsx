@@ -20,6 +20,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
     {},
   );
 
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
   const selected = models.find((m) => m.id === currentModel) || models[0];
 
   // Group models by provider
@@ -41,7 +43,26 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       const provider = currentModel.split("/")[0];
       setOpenProviders((prev) => ({ ...prev, [provider]: true }));
     }
-  }, [currentModel, isOpen]); // Re-check when dropdown opens
+  }, [currentModel, isOpen]);
+
+  // Handle click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
 
   const toggleProvider = (provider: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -51,7 +72,6 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   const formatPrice = (price: string) => {
     const num = parseFloat(price);
     if (num === 0) return "Free";
-    // Threshold changed to 0.001 (e.g. $1000/1M) to capture almost all paid models in /1M format
     if (num < 0.001) return `$${(num * 1000000).toFixed(2)}/1M`;
     return `$${num.toFixed(6)}`;
   };
@@ -62,7 +82,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   };
 
   return (
-    <div className="relative flex flex-col gap-1">
+    <div className="relative flex flex-col gap-1" ref={containerRef}>
       {label && (
         <span className="text-[10px] text-slate-500 font-mono tracking-wider ml-1">
           {label}
@@ -71,12 +91,6 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        onBlur={(e) => {
-          // Only close if focus moved outside dropdown
-          if (!e.currentTarget.parentElement?.contains(e.relatedTarget)) {
-            setTimeout(() => setIsOpen(false), 150);
-          }
-        }}
         className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-md text-xs font-medium text-slate-200 transition-colors border border-slate-700 max-w-[200px]"
       >
         <span className="truncate">{selected?.name || "Select Model"}</span>

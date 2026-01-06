@@ -29,7 +29,8 @@ router: APIRouter = APIRouter()
 # Init Core Components
 client: OpenRouterClient = OpenRouterClient()
 memory: ChromaMemory = ChromaMemory()
-tool_manager: ToolManager = ToolManager()
+memory: ChromaMemory = ChromaMemory()
+# tool_manager moved to request scope
 
 
 class ChatRequest(BaseModel):
@@ -106,6 +107,13 @@ async def chat_completions(
             status_code=400, detail="Model is required ('model' or 'logic_model')."
         )
 
+    from ...core.config import global_config
+
+    tool_manager = ToolManager(
+        allowed_paths=global_config.allowed_paths,
+        workspace_dir=global_config.workspace_dir,
+    )
+
     request_engine = HybridEngine(
         client=request_client,
         logic_model=logic_model,
@@ -123,6 +131,7 @@ async def chat_completions(
             request_client=request_client,
             x_openrouter_key=x_openrouter_key,
             logic_model=logic_model,
+            tool_manager=tool_manager,
         ),
         media_type="text/event-stream",
     )
@@ -135,6 +144,7 @@ async def event_generator(
     request_client: OpenRouterClient,
     x_openrouter_key: str | None,
     logic_model: str,
+    tool_manager: ToolManager,
 ) -> AsyncGenerator[str, None]:
     """Generates a stream of events for the chat completion."""
     full_response = ""
@@ -180,10 +190,15 @@ async def event_generator(
                     )
                     COGNITIVE_STATE.update(packet["data"])
                     tool_manager.update_cognitive_state(packet["data"])
-                    system_prompt_for_continuation = (
+
+                    # Use the full rich system prompt from the engine if available
+                    # otherwise fallback to the simple state string
+                    system_prompt_for_continuation = packet["data"].get(
+                        "system_prompt",
                         f"You are NEXUS, a cognitive AI assistant. "
-                        f"Current state: manifold={packet['data'].get('primary_manifold')}"
+                        f"Current state: manifold={packet['data'].get('primary_manifold')}",
                     )
+
                     selected_model = packet["data"].get("model", selected_model)
                     yield f"event: cognitive\ndata: {json.dumps(packet['data'])}\n\n"
 

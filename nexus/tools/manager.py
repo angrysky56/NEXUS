@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 class ToolManager:
-    def __init__(self, allowed_paths: list[str] = ["./"]):
-        self.fs = FileSystemTool(allowed_paths)
+    def __init__(self, allowed_paths: list[str] = ["./"], workspace_dir: str = "."):
+        self.fs = FileSystemTool(allowed_paths, workspace_dir)
         self.terminal = TerminalTool()
 
         # Define Tool Schemas (OpenAI/Generic format)

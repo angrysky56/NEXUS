@@ -305,15 +305,11 @@ class OpenRouterClient:
 
                             delta = chunk["choices"][0].get("delta", {})
 
-                            # Debug: Log all delta keys to see what's being returned
-                            if delta:
-                                delta_keys = list(delta.keys())
-                                if delta_keys and delta_keys != [
-                                    "content"
-                                ]:  # Only log non-content-only deltas
-                                    logger.debug(
-                                        f"Delta keys: {delta_keys}, values preview: {str(delta)[:200]}"
-                                    )
+                            # Debug: Log only significant non-content deltas - COMMENTED OUT TO REDUCE NOISE
+                            # if delta:
+                            #    significant_keys = [k for k, v in delta.items() if k != "content" and k != "role" and v]
+                            #    if significant_keys:
+                            #        logger.debug(f"Delta keys: {significant_keys}...")
 
                             # 1. Handle Reasoning (from reasoning_details array or direct field)
                             # We use a flag to avoid yielding duplicates if multiple fields are present
@@ -379,10 +375,20 @@ class OpenRouterClient:
                                 }
 
                             # 3. Handle Standard Content (Token)
-                            elif "content" in delta and delta["content"]:
-                                # Only yield as token if not already yielded as reasoning in this chunk
-                                # and doesn't look like reasoning that bled into content
-                                yield {"type": "token", "content": delta["content"]}
+                            # We use 'if' here (not elif) because some providers send content and tool_calls in the same chunk
+                            if "content" in delta and delta["content"]:
+                                content = delta["content"]
+
+                                # Basic check for thought tags leaking into content (common in DeepSeek/R1)
+                                if content.strip().startswith(
+                                    "<think>"
+                                ) or content.strip().startswith("</think>"):
+                                    # Treat tag boundaries as thinking logic if needed, but for now just pass through
+                                    # or ideally, parse it. Given stream complexity, we'll yield as token
+                                    # but the UI might need to handle it.
+                                    pass
+
+                                yield {"type": "token", "content": content}
 
                         except json.JSONDecodeError:
                             logger.error(
